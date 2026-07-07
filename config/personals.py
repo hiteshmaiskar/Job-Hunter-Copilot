@@ -19,12 +19,13 @@ version:    2024.11.28.16.00
 # >>>>>>>>>>> Easy Apply Questions & Inputs <<<<<<<<<<<
 
 # Your legal name
-first_name = "Sai"                 # Your first name in quotes Eg: "First", "Sai"
-middle_name = "Vignesh"            # Your name in quotes Eg: "Middle", "Vignesh", ""
-last_name = "Golla"                # Your last name in quotes Eg: "Last", "Golla"
+first_name = "Hitesh"                 # Your first name in quotes Eg: "First", "Sai"
+middle_name = "R"            # Your name in quotes Eg: "Middle", "Vignesh", ""
+last_name = "Maiskar"                # Your last name in quotes Eg: "Last", "Golla"
 
 # Phone number (required), make sure it's valid.
-phone_number = "9876543210"        # Enter your 10 digit number in quotes Eg: "9876543210"
+# phone_number = "9876543210"        # Enter your 10 digit number in quotes Eg: "9876543210"
+phone_number = "9766313688"        # Enter your 10 digit number in quotes Eg: "9876543210"
 
 # What is your current city?
 current_city = ""                  # Los Angeles, San Francisco, etc.
