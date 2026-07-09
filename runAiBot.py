@@ -571,6 +571,55 @@ def get_job_description(
         
 
 
+# ── Resume section detection ──────────────────────────────────────────────────
+def find_resume_section(modal: WebElement) -> WebElement | None:
+    """
+    Detects whether the current Easy Apply modal step contains a resume
+    upload section.
+
+    LinkedIn uses obfuscated CSS class names that change frequently, so this
+    function tries multiple robust selectors in order of specificity.
+
+    DOM reference (as observed):
+        <div class="...">
+            <p class="...">Resume</p>
+            <p class="...">Select or upload a resume in DOC, DOCX, or PDF format
+                           that is less than 2MB</p>
+        </div>
+        <input type="file" name="file" .../>
+
+    Args:
+        modal (WebElement): The Easy Apply modal dialog element.
+
+    Returns:
+        WebElement: The resume section element if found, None otherwise.
+    """
+    # Ordered from most-specific to broadest fallback
+    selectors = [
+        # 1. Exact <p> text match — most reliable when text is stable
+        (By.XPATH,        './/p[normalize-space(text())="Resume"]'),
+        # 2. File input named "file" — LinkedIn's upload input name is stable
+        (By.XPATH,        './/input[@type="file" and @name="file"]'),
+        # 3. <p> containing "Resume" (handles extra whitespace / nested spans)
+        (By.XPATH,        './/p[contains(normalize-space(text()),"Resume")]'),
+        # 4. The subtitle hint text that always appears alongside the upload widget
+        (By.XPATH,        './/p[contains(text(),"upload a resume")]'),
+        # 5. Broadest fallback — any file input in the modal
+        (By.CSS_SELECTOR, 'input[type="file"]'),
+    ]
+
+    for by, selector in selectors:
+        try:
+            element = modal.find_element(by, selector)
+            print_lg(f"[resume-detect] Resume section found via: {by}='{selector}'")
+            return element
+        except NoSuchElementException:
+            continue
+
+    print_lg("[resume-detect] No resume section found on this modal step.")
+    return None
+
+
 # Function to upload resume
 def upload_resume(modal: WebElement, resume: str) -> tuple[bool, str]:
     try:
@@ -1223,14 +1272,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         if use_resume_tailoring and aiClient:
                                             # Only tailor & upload if the Resume upload section
                                             # is visible in the current modal step.
-                                            resume_section = None
-                                            try:
-                                                resume_section = modal.find_element(
-                                                    By.XPATH,
-                                                    './/p[normalize-space(.)="Resume"]'
-                                                )
-                                            except NoSuchElementException:
-                                                pass
+                                            resume_section = find_resume_section(modal)
 
                                             if resume_section:
                                                 # Resume section detected — tailor for this job.
@@ -1254,15 +1296,10 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         else:
                                             # Resume tailoring disabled — upload the static default resume
                                             # only if a resume section is present on this step.
-                                            try:
-                                                modal.find_element(
-                                                    By.XPATH,
-                                                    './/p[normalize-space(.)="Resume"]'
-                                                )
+                                            if find_resume_section(modal):
                                                 uploaded, resume = upload_resume(modal, default_resume_path)
-                                            except NoSuchElementException:
-                                                pass
                                         ##<
+
 
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]') 
 

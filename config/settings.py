@@ -51,10 +51,10 @@ stop_date_cycle_at_24hr = True      # True or False, Note: True or False are cas
 # >>>>>>>>>>> RESUME GENERATOR (Experimental & In Development) <<<<<<<<<<<
 
 # Give the path to the folder where all the generated resumes are to be stored
-generated_resume_path = "all resumes/" # (In Development)
+generated_resume_path = "all resumes/tailored/" # (In Development)
 
 
-
+use_resume_tailoring = True        # True or False, Note: True or False are case-sensitive
 
 
 # >>>>>>>>>>> Global Settings <<<<<<<<<<<
