@@ -13,7 +13,7 @@ Usage:
 Expected output:
     [OK] Base resume text extracted (XXXX chars)
     [OK] Azure OpenAI tailored resume JSON received
-    [OK] Tailored PDF generated at: all resumes/tailored/TEST_JOB_001/resume.pdf
+    [OK] Tailored PDF generated at: <temp_dir>/TEST_JOB_001_resume.pdf
     
     === ALL TESTS PASSED ===
 """
@@ -66,6 +66,59 @@ def test_extraction():
         return None
 
 
+def test_azure_client_sanity():
+    """
+    Test 0: Azure client connectivity sanity check.
+
+    Sends a minimal 1-token chat completion to verify:
+      - Endpoint URL is reachable
+      - API key is valid
+      - Deployment name exists
+      - API version is supported
+
+    This is intentionally cheap — max_tokens=5 so it burns almost no quota.
+    """
+    print("\n[TEST 0] Azure OpenAI client sanity check...")
+    from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client
+    from config.secrets import azure_openai_endpoint, azure_openai_deployment, azure_openai_api_version
+
+    client = None
+    try:
+        client = azure_create_client()
+        assert client is not None, "azure_create_client() returned None!"
+
+        # Minimal ping: ask the model to reply with one word.
+        # max_tokens=5 keeps cost near zero.
+        response = client.chat.completions.create(
+            model=azure_openai_deployment,
+            messages=[{"role": "user", "content": "Reply with the single word: OK"}],
+            max_tokens=5,
+            stream=False,
+        )
+        reply = response.choices[0].message.content.strip()
+        assert reply, "Empty response from Azure OpenAI!"
+
+        print(f"  [OK] Azure client is healthy")
+        print(f"       Endpoint  : {azure_openai_endpoint}")
+        print(f"       Deployment: {azure_openai_deployment}")
+        print(f"       API Ver   : {azure_openai_api_version}")
+        print(f"       Model ping: {repr(reply)}")
+        return True
+
+    except Exception as e:
+        print(f"  [FAIL] Azure client sanity check failed: {e}")
+        print(f"         -> Check azure_openai_endpoint, azure_openai_key,")
+        print(f"           azure_openai_deployment, and azure_openai_api_version")
+        print(f"           in config/secrets.py")
+        return False
+    finally:
+        if client:
+            try:
+                azure_close_client(client)
+            except Exception:
+                pass
+
+
 def test_azure_tailoring(base_text: str):
     """Test 2: Azure OpenAI resume tailoring."""
     print("\n[TEST 2] Calling Azure OpenAI to tailor resume...")
@@ -101,9 +154,10 @@ def test_azure_tailoring(base_text: str):
 def test_pdf_generation(resume_data: dict):
     """Test 3: PDF generation with reportlab."""
     print("\n[TEST 3] Generating tailored PDF with reportlab...")
+    import tempfile
     from modules.resumes.generator import generate_tailored_pdf
 
-    output_path = os.path.join("all resumes", "tailored", TEST_JOB_ID, "resume.pdf")
+    output_path = os.path.join(tempfile.gettempdir(), f"TEST_JOB_001_resume.pdf")
     try:
         saved_path = generate_tailored_pdf(resume_data, output_path)
         assert os.path.exists(saved_path), f"PDF not found at: {saved_path}"
@@ -117,16 +171,23 @@ def test_pdf_generation(resume_data: dict):
 
 
 def test_full_pipeline():
-    """Test 4: Full pipeline via tailorer.py (with cache and fallback)."""
+    """Test 4: Full pipeline via tailorer.py (with cache)."""
     print("\n[TEST 4] Full pipeline via tailor_resume_for_job()...")
     from modules.resumes.tailorer import tailor_resume_for_job
     from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client
 
+    TEST_JOB_TITLE = "Senior Full Stack Developer Azure Angular"
     client = None
     try:
         client = azure_create_client()
-        result_path = tailor_resume_for_job(TEST_JOB_ID + "_PIPELINE", SAMPLE_JOB_DESCRIPTION, client)
-        assert result_path, "tailor_resume_for_job returned empty path"
+        # Updated signature: (job_id, job_title, job_description, azure_client)
+        result_path = tailor_resume_for_job(
+            TEST_JOB_ID + "_PIPELINE",
+            TEST_JOB_TITLE,
+            SAMPLE_JOB_DESCRIPTION,
+            client,
+        )
+        assert result_path, "tailor_resume_for_job returned None (tailoring failed)"
         print(f"  [OK] Pipeline result path: {result_path}")
         return result_path
     except Exception as e:
@@ -144,6 +205,17 @@ if __name__ == "__main__":
     print("=" * 60)
 
     results = {}
+
+    # Test 0 — Azure client sanity check
+    # sanity_ok = test_azure_client_sanity()
+    # results["azure_client_sanity"] = sanity_ok
+
+    # if not sanity_ok:
+    #     print("\n[ABORT] Azure client failed sanity check — skipping remaining tests.")
+    #     print("=" * 60)
+    #     print("  [FAIL] azure_client_sanity")
+    #     print("=" * 60)
+    #     sys.exit(1)
 
     # Test 1
     base_text = test_extraction()

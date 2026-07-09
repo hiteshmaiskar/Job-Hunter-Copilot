@@ -98,7 +98,7 @@ Set use_resume_tailoring = False to use the default static resume (original beha
 '''
 
 # Azure OpenAI endpoint — from Azure AI Foundry portal
-azure_openai_endpoint = "https://job-hunter-copilot-resource.openai.azure.com/openai/v1"
+azure_openai_endpoint = "https://job-hunter-copilot-resource.openai.azure.com/"
 # Example: "https://my-resource.openai.azure.com/"
 
 # Azure OpenAI API key
@@ -110,7 +110,7 @@ azure_openai_deployment = "gpt-5-mini"
 # Example: "gpt-4o", "gpt-35-turbo", or whatever name you chose during deployment
 
 # Azure OpenAI API version
-azure_openai_api_version = "2025-08-07"
+azure_openai_api_version = "2024-10-21"
 # Example: "2024-02-01", "2025-01-01-preview" — check Azure docs for latest stable version
 
 # Fallback to default resume if tailoring fails?
