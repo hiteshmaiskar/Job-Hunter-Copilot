@@ -19,7 +19,7 @@ version:    26.01.20.5.08
 
 # These Sentences are Searched in LinkedIn
 # Enter your search terms inside '[ ]' with quotes ' "searching title" ' for each search followed by comma ', ' Eg: ["Software Engineer", "Software Developer", "Selenium Developer"]
-search_terms = ["Software Engineer", "Software Developer", "Python Developer", "Selenium Developer", "React Developer", "Java Developer", "Front End Developer", "Full Stack Developer", "Web Developer", "Nodejs Developer"]
+search_terms = [".NET Full Stack Developer", "Frontend Developer", "Generative AI Developer"]
 
 # Search location, this will be filled in "City, state, or zip code" search box. If left empty as "", tool will not fill it.
 # search_location = "United States"               # Some valid examples: "", "United States", "India", "Chicago, Illinois, United States", "90001, Los Angeles, California, United States", "Bengaluru, Karnataka, India", etc.
@@ -29,7 +29,8 @@ search_location = "Germany"
 switch_number = 2 #30                 # Only numbers greater than 0... Don't put in quotes
 
 # Do you want to randomize the search order for search_terms?
-randomize_search_order = False     # True of False, Note: True or False are case-sensitive
+randomize_search_order = False  
+   # True of False, Note: True or False are case-sensitive
 
 
 # >>>>>>>>>>> Job Search Filters <<<<<<<<<<<
@@ -63,7 +64,7 @@ companies = []                     # (dynamic multiple select) make sure the nam
                                    # Eg: "7-eleven", "Google","X, the moonshot factory","YouTube","CapitalG","Adometry (acquired by Google)","Meta","Apple","Byte Dance","Netflix", "Snowflake","Mineral.ai","Microsoft","JP Morgan","Barclays","Visa","American Express", "Snap Inc", "JPMorgan Chase & Co.", "Tata Consultancy Services", "Recruiting from Scratch", "Epic", and so on...
 location = ["Germany", "Austria", "Switzerland"]                      # (dynamic multiple select)
 industry = ["Information Technology and Services"]                      # (dynamic multiple select)
-job_function = ["Software_Development"]                  # (dynamic multiple select)
+job_function = ["Software Development", "Product Architecture"]                  # (dynamic multiple select)
 job_titles = ["Full Stack Software Developer","Senior Software Developer","AI Engineer"]                    # (dynamic multiple select)
 benefits = []                      # (dynamic multiple select)
 commitments = []                   # (dynamic multiple select)

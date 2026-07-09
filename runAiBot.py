@@ -54,7 +54,7 @@ if use_AI:
 
 # Resume Tailoring Feature — Azure OpenAI (Azure AI Foundry)
 if use_resume_tailoring:
-    from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client
+    from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client, azure_answer_question
     from modules.resumes.tailorer import tailor_resume_for_job
 
 from typing import Literal
@@ -76,7 +76,7 @@ middle_name = middle_name.strip()
 last_name = last_name.strip()
 full_name = first_name + " " + middle_name + " " + last_name if middle_name else first_name + " " + last_name
 
-useNewResume = True
+useTailoredResume = True
 randomly_answered_questions = set()
 
 tabs_count = 1
@@ -101,7 +101,6 @@ notice_period_weeks = str(notice_period//7)
 notice_period = str(notice_period)
 
 aiClient = None
-azureClient = None  # Resume Tailoring Feature — Azure OpenAI client
 ##> ------ Dheeraj Deshwal : dheeraj9811 Email:dheeraj20194@iiitd.ac.in/dheerajdeshwal9811@gmail.com - Feature ------
 about_company_for_ai = None # TODO extract about company for AI
 ##<
@@ -792,7 +791,9 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                 if answer == "":
                     if use_AI and aiClient:
                         try:
-                            if ai_provider.lower() == "openai":
+                            if ai_provider.lower() == "azure":
+                                answer = azure_answer_question(aiClient, label_org, question_type="text", job_description=job_description, user_information_all=user_information_all)
+                            elif ai_provider.lower() == "openai":
                                 answer = ai_answer_question(aiClient, label_org, question_type="text", job_description=job_description, user_information_all=user_information_all)
                             elif ai_provider.lower() == "deepseek":
                                 answer = deepseek_answer_question(aiClient, label_org, options=None, question_type="text", job_description=job_description, about_company=None, user_information_all=user_information_all)
@@ -839,7 +840,9 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                 ##> ------ Yang Li : MARKYangL - Feature ------
                     if use_AI and aiClient:
                         try:
-                            if ai_provider.lower() == "openai":
+                            if ai_provider.lower() == "azure":
+                                answer = azure_answer_question(aiClient, label_org, question_type="textarea", job_description=job_description, user_information_all=user_information_all)
+                            elif ai_provider.lower() == "openai":
                                 answer = ai_answer_question(aiClient, label_org, question_type="textarea", job_description=job_description, user_information_all=user_information_all)
                             elif ai_provider.lower() == "deepseek":
                                 answer = deepseek_answer_question(aiClient, label_org, options=None, question_type="textarea", job_description=job_description, about_company=None, user_information_all=user_information_all)
@@ -1018,7 +1021,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
     applied_jobs = get_applied_job_ids()
     rejected_jobs = set()
     blacklisted_companies = set()
-    global current_city, failed_count, skip_count, easy_applied_count, external_jobs_count, tabs_count, pause_before_submit, pause_at_failed_question, useNewResume
+    global current_city, failed_count, skip_count, easy_applied_count, external_jobs_count, tabs_count, pause_before_submit, pause_at_failed_question, useTailoredResume
     current_city = current_city.strip()
 
     if randomize_search_order:  shuffle(search_terms)
@@ -1215,20 +1218,52 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         errored = "stuck"
                                         raise Exception("Seems like stuck in a continuous loop of next, probably because of new questions.")
                                     questions_list = answer_questions(modal, questions_list, work_location, job_description=description)
-                                    if useNewResume and not uploaded:
+                                    if useTailoredResume:
                                         ##> Resume Tailoring Feature — Azure OpenAI
-                                        if use_resume_tailoring and azureClient:
-                                            # Generate a tailored PDF for this specific job and upload it.
-                                            # Falls back to default_resume_path on any error
-                                            # (controlled by azure_tailoring_fallback in config/secrets.py).
-                                            tailored_resume_path = tailor_resume_for_job(
-                                                job_id, description, azureClient
-                                            )
-                                            uploaded, resume = upload_resume(modal, tailored_resume_path)
+                                        if use_resume_tailoring and aiClient:
+                                            # Only tailor & upload if the Resume upload section
+                                            # is visible in the current modal step.
+                                            resume_section = None
+                                            try:
+                                                resume_section = modal.find_element(
+                                                    By.XPATH,
+                                                    './/p[normalize-space(.)="Resume"]'
+                                                )
+                                            except NoSuchElementException:
+                                                pass
+
+                                            if resume_section:
+                                                # Resume section detected — tailor for this job.
+                                                # PDF saved to temp dir as "<Job_Title>_<job_id>.pdf"
+                                                tailored_resume_path = tailor_resume_for_job(
+                                                    job_id, title, description, aiClient
+                                                )
+                                                if tailored_resume_path:
+                                                    # Tailoring succeeded — upload the tailored PDF.
+                                                    uploaded, resume = upload_resume(modal, tailored_resume_path)
+                                                else:
+                                                    # Tailoring failed — do NOT re-upload.
+                                                    # LinkedIn will retain the previously uploaded resume.
+                                                    print_lg(
+                                                        "[tailorer] Skipping upload — "
+                                                        "LinkedIn retains existing resume."
+                                                    )
+                                            else:
+                                                # No resume section on this step — skip tailoring.
+                                                pass
                                         else:
-                                            # Original behavior — upload the static default resume
-                                            uploaded, resume = upload_resume(modal, default_resume_path)
+                                            # Resume tailoring disabled — upload the static default resume
+                                            # only if a resume section is present on this step.
+                                            try:
+                                                modal.find_element(
+                                                    By.XPATH,
+                                                    './/p[normalize-space(.)="Resume"]'
+                                                )
+                                                uploaded, resume = upload_resume(modal, default_resume_path)
+                                            except NoSuchElementException:
+                                                pass
                                         ##<
+
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]') 
 
                                     except NoSuchElementException:  next_button = modal.find_element(By.XPATH, './/button[contains(span, "Next")]')
@@ -1279,7 +1314,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         if skip: continue
 
                     submitted_jobs(job_id, title, company, work_location, work_style, description, experience_required, skills, hr_name, hr_link, resume, reposted, date_listed, date_applied, job_link, application_link, questions_list, connect_request)
-                    if uploaded:   useNewResume = False
+                    if uploaded:   useTailoredResume = True
 
                     print_lg(f'Successfully saved "{title} | {company}" job. Job ID: {job_id} info')
                     current_count += 1
@@ -1336,16 +1371,16 @@ chatGPT_tab = False
 linkedIn_tab = False
 
 def main() -> None:
-    pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
+    #pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
     total_runs = 1
     try:
-        global linkedIn_tab, tabs_count, useNewResume, aiClient, azureClient
+        global linkedIn_tab, tabs_count, useTailoredResume, aiClient
         alert_title = "Error Occurred. Closing Browser!"
         validate_config()
         
-        if not os.path.exists(default_resume_path):
-            pyautogui.alert(text='Your default resume "{}" is missing! Please update it\'s folder path "default_resume_path" in config.py\n\nOR\n\nAdd a resume with exact name and path (check for spelling mistakes including cases).\n\n\nFor now the bot will continue using your previous upload from LinkedIn!'.format(default_resume_path), title="Missing Resume", button="OK")
-            useNewResume = False
+        # if not os.path.exists(default_resume_path):
+        #     pyautogui.alert(text='Your default resume "{}" is missing! Please update it\'s folder path "default_resume_path" in config.py\n\nOR\n\nAdd a resume with exact name and path (check for spelling mistakes including cases).\n\n\nFor now the bot will continue using your previous upload from LinkedIn!'.format(default_resume_path), title="Missing Resume", button="OK")
+        #     useTailoredResume = False
         
         # Login to LinkedIn
         tabs_count = len(driver.window_handles)
@@ -1384,14 +1419,13 @@ def main() -> None:
             except Exception as e:
                 print_lg("Failed to extract about company info!", e)
 
-        # Resume Tailoring Feature — Initialize Azure OpenAI client
-        if use_resume_tailoring:
+        # Resume Tailoring Feature — reuse aiClient; create one if use_AI is disabled
+        if use_resume_tailoring and aiClient is None:
             try:
-                #azureClient = azure_create_client()
-                print_lg("Azure OpenAI client initialized for resume tailoring.")
+                aiClient = azure_create_client()
+                print_lg("Azure OpenAI client initialized for resume tailoring (standalone).")
             except Exception as e:
                 print_lg("Failed to initialize Azure OpenAI client for resume tailoring!", e)
-                azureClient = None
         
         # Start applying to jobs
         driver.switch_to.window(linkedIn_tab)
@@ -1457,7 +1491,9 @@ def main() -> None:
         ##> ------ Yang Li : MARKYangL - Feature ------
         if use_AI and aiClient:
             try:
-                if ai_provider.lower() == "openai":
+                if ai_provider.lower() == "azure":
+                    azure_close_client(aiClient)
+                elif ai_provider.lower() == "openai":
                     ai_close_openai_client(aiClient)
                 elif ai_provider.lower() == "deepseek":
                     ai_close_openai_client(aiClient)
@@ -1467,11 +1503,12 @@ def main() -> None:
             except Exception as e:
                 print_lg("Failed to close AI client:", e)
         ##<
-        # Resume Tailoring Feature — Close Azure OpenAI client
-        if use_resume_tailoring and azureClient:
+        # Resume Tailoring Feature — aiClient shared; already closed above by use_AI block.
+        # If tailoring was standalone (use_AI=False), close it now.
+        if use_resume_tailoring and not use_AI and aiClient:
             try:
-                azure_close_client(azureClient)
-                print_lg("Closed Azure OpenAI client.")
+                azure_close_client(aiClient)
+                print_lg("Closed Azure OpenAI client (resume tailoring standalone).")
             except Exception as e:
                 print_lg("Failed to close Azure OpenAI client:", e)
         try:

@@ -8,7 +8,7 @@ This module ties together:
     3. Tailored PDF generation (generator.py)
 
 It exposes a single function tailor_resume_for_job() that the main bot
-(runAiBot.py) calls before each Easy Apply resume upload.
+(runAiBot.py) calls when a Resume upload section is detected in the modal.
 
 Original project:
     GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
@@ -21,10 +21,10 @@ Original project:
 # Imports
 # ──────────────────────────────────────────────────────────────────────────────
 import os
+import re
+import tempfile
 
-from config.questions import default_resume_path
 from config.secrets import (
-    azure_tailoring_fallback,
     azure_tailoring_use_cache,
 )
 
@@ -37,80 +37,96 @@ from modules.resumes.generator import generate_tailored_pdf
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Constants
+# Helpers
 # ──────────────────────────────────────────────────────────────────────────────
-TAILORED_RESUMES_DIR = os.path.join("all resumes", "tailored")
-"""Base directory where per-job tailored PDFs are saved."""
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Helper
-# ──────────────────────────────────────────────────────────────────────────────
-def get_tailored_resume_path(job_id: str) -> str:
+def _sanitize_filename(name: str, max_len: int = 80) -> str:
     """
-    Returns the expected output path for a tailored resume given a job_id.
+    Converts a job title into a safe filename component.
 
-    Args:
-        job_id (str): LinkedIn job ID (e.g. "3987654321").
-
-    Returns:
-        str: Relative path — "all resumes/tailored/<job_id>/resume.pdf"
+    Replaces any character that is not alphanumeric, a hyphen, or an
+    underscore with an underscore, collapses consecutive underscores, and
+    trims to ``max_len`` characters.
 
     Example:
-        path = get_tailored_resume_path("3987654321")
-        # -> "all resumes/tailored/3987654321/resume.pdf"
+        _sanitize_filename("Senior Python Developer (Remote)") -> "Senior_Python_Developer_Remote"
     """
-    return os.path.join(TAILORED_RESUMES_DIR, str(job_id), "resume.pdf")
+    sanitized = re.sub(r"[^\w\-]", "_", name)          # replace unsafe chars
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")  # collapse/trim _
+    return sanitized[:max_len]
+
+
+def get_tailored_resume_path(job_id: str, job_title: str) -> str:
+    """
+    Returns the absolute path for the tailored resume inside the system temp
+    directory.
+
+    File name pattern: ``<sanitized_job_title>_<job_id>.pdf``
+
+    Args:
+        job_id (str):    LinkedIn job ID (e.g. "3987654321").
+        job_title (str): Job title string (e.g. "Senior Python Developer").
+
+    Returns:
+        str: Absolute path inside the OS temp dir.
+
+    Example:
+        get_tailored_resume_path("3987654321", "Senior Python Developer")
+        # -> "/tmp/Senior_Python_Developer_3987654321.pdf"
+    """
+    safe_title = _sanitize_filename(job_title) if job_title else "Resume"
+    filename   = f"{safe_title}_{job_id}.pdf"
+    return os.path.join(tempfile.gettempdir(), filename)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Main pipeline function
 # ──────────────────────────────────────────────────────────────────────────────
 def tailor_resume_for_job(
-    job_id: str,
+    job_id:          str,
+    job_title:       str,
     job_description: str,
     azure_client,           # AzureOpenAI — typed loosely to avoid circular import
-) -> str:
+) -> str | None:
     """
     Full resume tailoring pipeline for a single job application.
 
     Steps:
-    1. Check cache — if a tailored PDF already exists for this job_id and
-       azure_tailoring_use_cache is True, return the cached path immediately.
-    2. Extract text from the base PDF resume (all resumes/default/).
+    1. Check cache — if a tailored PDF already exists for this job_id/title
+       in the temp dir and azure_tailoring_use_cache is True, return it.
+    2. Extract text from the base PDF resume.
     3. Call Azure OpenAI to tailor the resume JSON for this job_description.
     4. Render the JSON as a clean ATS-friendly PDF using reportlab.
-    5. Save the PDF to: all resumes/tailored/<job_id>/resume.pdf
+    5. Save the PDF to: <temp_dir>/<job_title>_<job_id>.pdf
 
-    On any failure:
-    - If azure_tailoring_fallback is True  → returns default_resume_path (silent fallback).
-    - If azure_tailoring_fallback is False → re-raises the exception.
+    On any failure → returns None so the caller can skip the upload and
+    keep whatever resume LinkedIn already has on file.
 
     Args:
         job_id (str):           LinkedIn job ID string (e.g. "3987654321").
+        job_title (str):        Job title from the listing (used as filename).
         job_description (str):  Full job description text scraped from LinkedIn.
         azure_client:           AzureOpenAI client from azure_create_client().
-                                Pass None to skip tailoring and return default.
+                                Pass None to skip tailoring (returns None).
 
     Returns:
-        str: Absolute path to the tailored resume PDF, or the default resume path
-             if tailoring fails/is skipped.
+        str | None: Absolute path to the tailored PDF on success, None on failure.
 
     Example (in runAiBot.py):
-        tailored_path = tailor_resume_for_job(job_id, description, azure_client)
-        uploaded, resume = upload_resume(modal, tailored_path)
+        tailored_path = tailor_resume_for_job(job_id, title, description, aiClient)
+        if tailored_path:
+            upload_resume(modal, tailored_path)
+        # else: skip upload — LinkedIn retains the previously uploaded resume
     """
-    output_path = get_tailored_resume_path(job_id)
-    abs_output  = os.path.abspath(output_path)
+    output_path = get_tailored_resume_path(job_id, job_title)
 
     try:
         # ── Step 1: Cache check ───────────────────────────────────────────────
-        if azure_tailoring_use_cache and os.path.exists(abs_output):
+        if azure_tailoring_use_cache and os.path.exists(output_path):
             print_lg(
                 f"[tailorer] Cache hit — reusing tailored resume for job {job_id}: "
-                f"{abs_output}"
+                f"{output_path}"
             )
-            return abs_output
+            return output_path
 
         # ── Guard: client must exist ──────────────────────────────────────────
         if azure_client is None:
@@ -127,7 +143,7 @@ def tailor_resume_for_job(
             )
 
         # ── Step 2: Extract base resume text ──────────────────────────────────
-        print_lg(f"[tailorer] Extracting base resume text...")
+        print_lg("[tailorer] Extracting base resume text...")
         base_resume_text = get_default_resume_text()
         print_lg(
             f"[tailorer] Extracted {len(base_resume_text)} characters from base resume."
@@ -147,7 +163,7 @@ def tailor_resume_for_job(
             )
 
         # ── Step 4: Generate tailored PDF ─────────────────────────────────────
-        print_lg(f"[tailorer] Generating tailored PDF at: {abs_output}")
+        print_lg(f"[tailorer] Generating tailored PDF at: {output_path}")
         saved_path = generate_tailored_pdf(resume_data, output_path)
 
         print_lg(
@@ -157,14 +173,10 @@ def tailor_resume_for_job(
 
     except Exception as e:
         critical_error_log(
-            f"[tailorer] Failed to tailor resume for job {job_id}.", e
+            f"[tailorer] Failed to tailor resume for job {job_id} ({job_title}).", e
         )
-
-        if azure_tailoring_fallback:
-            print_lg(
-                f"[tailorer] Falling back to default resume: {default_resume_path}"
-            )
-            return os.path.abspath(default_resume_path)
-        else:
-            # Re-raise so the caller can decide what to do
-            raise
+        print_lg(
+            "[tailorer] Tailoring failed — skipping upload. "
+            "LinkedIn will retain the previously uploaded resume."
+        )
+        return None
