@@ -129,3 +129,149 @@ Respond concisely based on the type of question:
 {}
 """
 #<
+
+
+##> ------ Resume Tailoring : Azure OpenAI (Azure AI Foundry) Feature ------
+##> Tailor Resume to Job Description
+
+# Structure of messages = `[{"role": "user", "content": tailor_resume_prompt}]`
+# Use tailor_resume_prompt.format(base_resume_text, job_description) to insert values.
+
+tailor_resume_prompt = """
+You are an expert resume writer and career coach. Your task is to tailor a candidate's existing resume 
+to better match a specific job description — WITHOUT fabricating any experience, skills, or qualifications 
+that the candidate does not already possess.
+
+RULES:
+1. DO NOT invent or hallucinate any new jobs, projects, skills, certifications, or education.
+2. ONLY rephrase, reorder, emphasize, or summarize existing content from the base resume.
+3. Highlight keywords and technologies from the job description that ALREADY appear in the resume.
+4. Write the professional summary specifically targeting the job description.
+5. Keep all dates, company names, job titles, and factual details exactly as they are in the base resume.
+6. Keep the resume concise and ATS-friendly (no tables, no images, plain text sections).
+7. Return the output ONLY as a valid JSON object — no extra commentary, no markdown fences.
+
+BASE RESUME:
+{}
+
+JOB DESCRIPTION:
+{}
+
+Return ONLY this JSON structure:
+{{
+    "name": "Candidate full name",
+    "contact": {{
+        "email": "email@example.com",
+        "phone": "phone number",
+        "location": "City, Country",
+        "linkedin": "LinkedIn URL or empty string",
+        "github": "GitHub URL or empty string"
+    }},
+    "summary": "2-4 sentence professional summary tailored to this job description",
+    "experience": [
+        {{
+            "company": "Company Name",
+            "title": "Job Title",
+            "dates": "Start Date – End Date",
+            "location": "City, Country",
+            "bullets": [
+                "Achievement or responsibility bullet point 1",
+                "Achievement or responsibility bullet point 2"
+            ]
+        }}
+    ],
+    "skills": [
+        "Skill category: skill1, skill2, skill3"
+    ],
+    "projects": [
+        {{
+            "name": "Project Name",
+            "technologies": "Tech stack used",
+            "description": "Brief project description"
+        }}
+    ],
+    "education": [
+        {{
+            "degree": "Degree name",
+            "institution": "Institution name",
+            "dates": "Year range",
+            "details": "Optional details like GPA, honors, etc."
+        }}
+    ],
+    "certifications": [
+        "Certification name — Issuing body (Year)"
+    ]
+}}
+"""
+"""
+Use `tailor_resume_prompt.format(base_resume_text, job_description)` to insert values.
+AI will return a JSON dict that can be passed to generate_tailored_pdf().
+"""
+
+tailor_resume_response_format = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "Tailored_Resume_Response",
+        "strict": False,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "contact": {
+                    "type": "object",
+                    "properties": {
+                        "email":    {"type": "string"},
+                        "phone":    {"type": "string"},
+                        "location": {"type": "string"},
+                        "linkedin": {"type": "string"},
+                        "github":   {"type": "string"}
+                    }
+                },
+                "summary": {"type": "string"},
+                "experience": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "company":  {"type": "string"},
+                            "title":    {"type": "string"},
+                            "dates":    {"type": "string"},
+                            "location": {"type": "string"},
+                            "bullets":  {"type": "array", "items": {"type": "string"}}
+                        }
+                    }
+                },
+                "skills":   {"type": "array", "items": {"type": "string"}},
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name":         {"type": "string"},
+                            "technologies": {"type": "string"},
+                            "description":  {"type": "string"}
+                        }
+                    }
+                },
+                "education": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "degree":      {"type": "string"},
+                            "institution": {"type": "string"},
+                            "dates":       {"type": "string"},
+                            "details":     {"type": "string"}
+                        }
+                    }
+                },
+                "certifications": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": ["name", "contact", "summary", "experience", "skills", "education"]
+        }
+    }
+}
+"""
+Response schema for tailor_resume prompt — validates structured JSON output from Azure OpenAI.
+"""
+##<

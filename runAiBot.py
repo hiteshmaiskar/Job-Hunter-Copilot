@@ -39,6 +39,7 @@ from config.personals import *
 from config.questions import *
 from config.search import *
 from config.secrets import use_AI, username, password, ai_provider
+from config.secrets import use_resume_tailoring  # Resume Tailoring Feature
 from config.settings import *
 
 from modules.open_chrome import *
@@ -50,6 +51,11 @@ if use_AI:
     from modules.ai.openaiConnections import ai_create_openai_client, ai_extract_skills, ai_answer_question, ai_close_openai_client
     from modules.ai.deepseekConnections import deepseek_create_client, deepseek_extract_skills, deepseek_answer_question
     from modules.ai.geminiConnections import gemini_create_client, gemini_extract_skills, gemini_answer_question
+
+# Resume Tailoring Feature — Azure OpenAI (Azure AI Foundry)
+if use_resume_tailoring:
+    from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client
+    from modules.resumes.tailorer import tailor_resume_for_job
 
 from typing import Literal
 
@@ -95,6 +101,7 @@ notice_period_weeks = str(notice_period//7)
 notice_period = str(notice_period)
 
 aiClient = None
+azureClient = None  # Resume Tailoring Feature — Azure OpenAI client
 ##> ------ Dheeraj Deshwal : dheeraj9811 Email:dheeraj20194@iiitd.ac.in/dheerajdeshwal9811@gmail.com - Feature ------
 about_company_for_ai = None # TODO extract about company for AI
 ##<
@@ -1208,8 +1215,22 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         errored = "stuck"
                                         raise Exception("Seems like stuck in a continuous loop of next, probably because of new questions.")
                                     questions_list = answer_questions(modal, questions_list, work_location, job_description=description)
-                                    if useNewResume and not uploaded: uploaded, resume = upload_resume(modal, default_resume_path)
+                                    if useNewResume and not uploaded:
+                                        ##> Resume Tailoring Feature — Azure OpenAI
+                                        if use_resume_tailoring and azureClient:
+                                            # Generate a tailored PDF for this specific job and upload it.
+                                            # Falls back to default_resume_path on any error
+                                            # (controlled by azure_tailoring_fallback in config/secrets.py).
+                                            tailored_resume_path = tailor_resume_for_job(
+                                                job_id, description, azureClient
+                                            )
+                                            uploaded, resume = upload_resume(modal, tailored_resume_path)
+                                        else:
+                                            # Original behavior — upload the static default resume
+                                            uploaded, resume = upload_resume(modal, default_resume_path)
+                                        ##<
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]') 
+
                                     except NoSuchElementException:  next_button = modal.find_element(By.XPATH, './/button[contains(span, "Next")]')
                                     try: next_button.click()
                                     except ElementClickInterceptedException: break    # Happens when it tries to click Next button in About Company photos section
@@ -1318,7 +1339,7 @@ def main() -> None:
     pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
     total_runs = 1
     try:
-        global linkedIn_tab, tabs_count, useNewResume, aiClient
+        global linkedIn_tab, tabs_count, useNewResume, aiClient, azureClient
         alert_title = "Error Occurred. Closing Browser!"
         validate_config()
         
@@ -1345,7 +1366,9 @@ def main() -> None:
         #     except Exception as e:
         #         print_lg("Opening OpenAI chatGPT tab failed!")
         if use_AI:
-            if ai_provider == "openai":
+            if ai_provider == "azure":
+                aiClient = azure_create_client()
+            elif ai_provider == "openai":
                 aiClient = ai_create_openai_client()
             ##> ------ Yang Li : MARKYangL - Feature ------
             # Create DeepSeek client
@@ -1360,6 +1383,15 @@ def main() -> None:
                 print_lg(f"Extracted about company info for AI: '{about_company_for_ai}'")
             except Exception as e:
                 print_lg("Failed to extract about company info!", e)
+
+        # Resume Tailoring Feature — Initialize Azure OpenAI client
+        if use_resume_tailoring:
+            try:
+                #azureClient = azure_create_client()
+                print_lg("Azure OpenAI client initialized for resume tailoring.")
+            except Exception as e:
+                print_lg("Failed to initialize Azure OpenAI client for resume tailoring!", e)
+                azureClient = None
         
         # Start applying to jobs
         driver.switch_to.window(linkedIn_tab)
@@ -1435,6 +1467,13 @@ def main() -> None:
             except Exception as e:
                 print_lg("Failed to close AI client:", e)
         ##<
+        # Resume Tailoring Feature — Close Azure OpenAI client
+        if use_resume_tailoring and azureClient:
+            try:
+                azure_close_client(azureClient)
+                print_lg("Closed Azure OpenAI client.")
+            except Exception as e:
+                print_lg("Failed to close Azure OpenAI client:", e)
         try:
             if driver:
                 driver.quit()
