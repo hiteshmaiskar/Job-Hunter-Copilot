@@ -29,7 +29,8 @@ search_location = "Germany"
 switch_number = 2 #30                 # Only numbers greater than 0... Don't put in quotes
 
 # Do you want to randomize the search order for search_terms?
-randomize_search_order = False     # True of False, Note: True or False are case-sensitive
+randomize_search_order = False  
+   # True of False, Note: True or False are case-sensitive
 
 
 # >>>>>>>>>>> Job Search Filters <<<<<<<<<<<

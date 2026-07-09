@@ -98,7 +98,7 @@ Set use_resume_tailoring = False to use the default static resume (original beha
 '''
 
 # Azure OpenAI endpoint — from Azure AI Foundry portal
-azure_openai_endpoint = "https://job-hunter-copilot-resource.services.ai.azure.com/openai/v1/responses"
+azure_openai_endpoint = "https://job-hunter-copilot-resource.openai.azure.com/openai/v1"
 # Example: "https://my-resource.openai.azure.com/"
 
 # Azure OpenAI API key

@@ -17,6 +17,7 @@ Original project:
 # ──────────────────────────────────────────────────────────────────────────────
 from openai import AzureOpenAI
 from openai.types.chat import ChatCompletion
+from typing import Literal
 
 from config.secrets import (
     azure_openai_endpoint,
@@ -26,7 +27,11 @@ from config.secrets import (
     stream_output,
 )
 from modules.helpers import print_lg, critical_error_log, convert_to_json
-from modules.ai.prompts import tailor_resume_prompt, tailor_resume_response_format
+from modules.ai.prompts import (
+    tailor_resume_prompt,
+    tailor_resume_response_format,
+    ai_answer_prompt,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -228,3 +233,80 @@ def azure_tailor_resume(
             f"Error during Azure OpenAI resume tailoring.{azureApiCheckInstructions}", e
         )
         return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Question answering function (mirrors ai_answer_question from openaiConnections)
+# ──────────────────────────────────────────────────────────────────────────────
+def azure_answer_question(
+    client: AzureOpenAI,
+    question: str,
+    options: list[str] | None = None,
+    question_type: Literal["text", "textarea", "single_select", "multiple_select"] = "text",
+    job_description: str = None,
+    about_company: str = None,
+    user_information_all: str = None,
+    stream: bool = stream_output,
+) -> str | None:
+    """
+    Answers a LinkedIn Easy Apply form question using Azure OpenAI.
+
+    Mirrors ``ai_answer_question`` from openaiConnections.py so it can be used
+    as a drop-in replacement when ``ai_provider == "azure"``.
+
+    Args:
+        client:               AzureOpenAI client (from azure_create_client()).
+        question:             The question label text from the form.
+        options:              List of option strings for select/radio questions
+                              (informational — appended to the prompt when present).
+        question_type:        One of "text", "textarea", "single_select",
+                              "multiple_select".
+        job_description:      Full job description for context (optional).
+        about_company:        Company description for context (optional).
+        user_information_all: Resume-style user info string for context (optional).
+        stream:               Whether to stream the Azure response.
+
+    Returns:
+        str: The AI-generated answer, or None on failure.
+
+    Example:
+        answer = azure_answer_question(
+            client, "How many years of Python experience do you have?",
+            question_type="text", job_description=jd, user_information_all=resume
+        )
+    """
+    print_lg("-- ANSWERING QUESTION using Azure OpenAI")
+    try:
+        # Build the base prompt using the shared ai_answer_prompt template
+        prompt = ai_answer_prompt.format(user_information_all or "N/A", question)
+
+        # Append select/radio options when available so the model can pick correctly
+        if options:
+            formatted = ", ".join(f'"{o}"' for o in options)
+            prompt += f"\nAvailable options: [{formatted}]"
+            if question_type == "single_select":
+                prompt += "\nReturn ONLY one of the options above, exactly as written."
+            elif question_type == "multiple_select":
+                prompt += "\nReturn a comma-separated list of the best matching options above."
+
+        # Append optional context
+        if job_description and job_description not in ("", "Unknown"):
+            prompt += f"\nJob Description:\n{job_description}"
+        if about_company and about_company not in ("", "Unknown"):
+            prompt += f"\nAbout the Company:\n{about_company}"
+
+        messages = [{"role": "user", "content": prompt}]
+        print_lg("Prompt sent to Azure OpenAI:\n", prompt)
+
+        result = _azure_completion(client, messages, stream=stream)
+
+        print_lg("\nAzure AI Answer to Question:\n")
+        print_lg(result)
+        return result
+
+    except Exception as e:
+        critical_error_log(
+            f"Error during Azure OpenAI question answering.{azureApiCheckInstructions}", e
+        )
+        return None
+
