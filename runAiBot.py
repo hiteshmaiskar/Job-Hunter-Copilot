@@ -1217,12 +1217,12 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                     questions_list = answer_questions(modal, questions_list, work_location, job_description=description)
                                     if useNewResume and not uploaded:
                                         ##> Resume Tailoring Feature — Azure OpenAI
-                                        if use_resume_tailoring and azureClient:
+                                        if use_resume_tailoring and aiClient:
                                             # Generate a tailored PDF for this specific job and upload it.
                                             # Falls back to default_resume_path on any error
                                             # (controlled by azure_tailoring_fallback in config/secrets.py).
                                             tailored_resume_path = tailor_resume_for_job(
-                                                job_id, description, azureClient
+                                                job_id, description, aiClient
                                             )
                                             uploaded, resume = upload_resume(modal, tailored_resume_path)
                                         else:
@@ -1279,7 +1279,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         if skip: continue
 
                     submitted_jobs(job_id, title, company, work_location, work_style, description, experience_required, skills, hr_name, hr_link, resume, reposted, date_listed, date_applied, job_link, application_link, questions_list, connect_request)
-                    if uploaded:   useNewResume = False
+                    if uploaded:   useNewResume = True
 
                     print_lg(f'Successfully saved "{title} | {company}" job. Job ID: {job_id} info')
                     current_count += 1
@@ -1336,16 +1336,16 @@ chatGPT_tab = False
 linkedIn_tab = False
 
 def main() -> None:
-    pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
+    #pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
     total_runs = 1
     try:
-        global linkedIn_tab, tabs_count, useNewResume, aiClient, azureClient
+        global linkedIn_tab, tabs_count, useNewResume, aiClient #, azureClient
         alert_title = "Error Occurred. Closing Browser!"
         validate_config()
         
-        if not os.path.exists(default_resume_path):
-            pyautogui.alert(text='Your default resume "{}" is missing! Please update it\'s folder path "default_resume_path" in config.py\n\nOR\n\nAdd a resume with exact name and path (check for spelling mistakes including cases).\n\n\nFor now the bot will continue using your previous upload from LinkedIn!'.format(default_resume_path), title="Missing Resume", button="OK")
-            useNewResume = False
+        # if not os.path.exists(default_resume_path):
+        #     pyautogui.alert(text='Your default resume "{}" is missing! Please update it\'s folder path "default_resume_path" in config.py\n\nOR\n\nAdd a resume with exact name and path (check for spelling mistakes including cases).\n\n\nFor now the bot will continue using your previous upload from LinkedIn!'.format(default_resume_path), title="Missing Resume", button="OK")
+        #     useNewResume = False
         
         # Login to LinkedIn
         tabs_count = len(driver.window_handles)
@@ -1391,7 +1391,7 @@ def main() -> None:
                 print_lg("Azure OpenAI client initialized for resume tailoring.")
             except Exception as e:
                 print_lg("Failed to initialize Azure OpenAI client for resume tailoring!", e)
-                azureClient = None
+                #azureClient = None
         
         # Start applying to jobs
         driver.switch_to.window(linkedIn_tab)
@@ -1468,9 +1468,9 @@ def main() -> None:
                 print_lg("Failed to close AI client:", e)
         ##<
         # Resume Tailoring Feature — Close Azure OpenAI client
-        if use_resume_tailoring and azureClient:
+        if use_resume_tailoring and aiClient:
             try:
-                azure_close_client(azureClient)
+                azure_close_client(aiClient)
                 print_lg("Closed Azure OpenAI client.")
             except Exception as e:
                 print_lg("Failed to close Azure OpenAI client:", e)
