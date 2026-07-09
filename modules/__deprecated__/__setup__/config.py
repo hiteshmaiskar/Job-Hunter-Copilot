@@ -119,7 +119,7 @@ require_visa = "No"               # "Yes" or "No"
 
 # What is the status of your citizenship? # If left empty as "", tool will not answer the question. However, note that some companies make it compulsory to be answered
 # Valid options are: "U.S. Citizen/Permanent Resident", "Non-citizen allowed to work for any employer", "Non-citizen allowed to work for current employer", "Non-citizen seeking work authorization", "Canadian Citizen/Permanent Resident" or "Other"
-us_citizenship = "U.S. Citizen/Permanent Resident"
+us_citizenship = "Non-citizen seeking work authorization"
 
 
 # What is the link to your portfolio website, leave it empty as "", if you want to leave this question unanswered
@@ -135,14 +135,14 @@ current_city = ""                  # If left empty will fill in location of jobs
 
 ## SOME ANNOYING QUESTIONS BY COMPANIES 🫠 ##
 # Address, not so common question but some job applications make it required!
-street = "123 Main Street"
-state = "STATE"
-zipcode = "12345"
-country = "Will Let You Know When Established"
+street = "Wakad"
+state = "Maharashtra"
+zipcode = "412057"
+country = "India"
 
-first_name = "Sai"                 # Your first name in quotes Eg: "First", "Sai"
-middle_name = "Vignesh"            # Your name in quotes Eg: "Middle", "Vignesh", ""
-last_name = "Golla"                # Your last name in quotes Eg: "Last", "Golla"
+first_name = "Hitesh"                 # Your first name in quotes Eg: "First", "Sai"
+middle_name = ""            # Your name in quotes Eg: "Middle", "Vignesh", ""
+last_name = "Maiskar"                # Your last name in quotes Eg: "Last", "Golla"
 
 # Your LinkedIn headline in quotes Eg: "Software Engineer @ Google, Masters in Computer Science", "Recent Grad Student @ MIT, Computer Science"
 headline = "Headline"

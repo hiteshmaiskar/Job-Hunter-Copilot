@@ -39,6 +39,7 @@ from config.personals import *
 from config.questions import *
 from config.search import *
 from config.secrets import use_AI, username, password, ai_provider
+from config.secrets import use_resume_tailoring  # Resume Tailoring Feature
 from config.settings import *
 
 from modules.open_chrome import *
@@ -50,6 +51,11 @@ if use_AI:
     from modules.ai.openaiConnections import ai_create_openai_client, ai_extract_skills, ai_answer_question, ai_close_openai_client
     from modules.ai.deepseekConnections import deepseek_create_client, deepseek_extract_skills, deepseek_answer_question
     from modules.ai.geminiConnections import gemini_create_client, gemini_extract_skills, gemini_answer_question
+
+# Resume Tailoring Feature — Azure OpenAI (Azure AI Foundry)
+if use_resume_tailoring:
+    from modules.ai.azureOpenaiConnections import azure_create_client, azure_close_client
+    from modules.resumes.tailorer import tailor_resume_for_job
 
 from typing import Literal
 
@@ -95,6 +101,7 @@ notice_period_weeks = str(notice_period//7)
 notice_period = str(notice_period)
 
 aiClient = None
+azureClient = None  # Resume Tailoring Feature — Azure OpenAI client
 ##> ------ Dheeraj Deshwal : dheeraj9811 Email:dheeraj20194@iiitd.ac.in/dheerajdeshwal9811@gmail.com - Feature ------
 about_company_for_ai = None # TODO extract about company for AI
 ##<
@@ -131,30 +138,173 @@ def login_LN() -> None:
         manual_login_retry(is_logged_in_LN, 2)
         return
     try:
-        wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Forgot password?")))
-        try:
-            text_input_by_ID(driver, "username", username, 1)
-        except Exception as e:
-            print_lg("Couldn't find username field.")
-            # print_lg(e)
-        try:
-            text_input_by_ID(driver, "password", password, 1)
-        except Exception as e:
-            print_lg("Couldn't find password field.")
-            # print_lg(e)
-        # Find the login submit button and click it
-        driver.find_element(By.XPATH, '//button[@type="submit" and contains(text(), "Sign in")]').click()
+        # OLD: waited for "Forgot password?" link — LinkedIn changed page structure, this was unreliable
+        # wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Forgot password?")))
+        # NEW: wait directly for the username input field to be present and interactable
+        # NOTE: LinkedIn uses a dynamic id like «r3» (not "username"), autocomplete="username webauthn"
+        # OLD selectors (kept for reference):
+        # (By.ID, "username"),                                          # fails — id is dynamic «r3»
+        # (By.NAME, "session_key"),                                     # fails — no name attribute
+        # (By.XPATH, "//input[@autocomplete='username']"),              # fails — value is "username webauthn"
+        username_selectors = [
+            (By.XPATH,       "//input[contains(@autocomplete,'username')]"),          # matches "username webauthn"
+            (By.CSS_SELECTOR,"input[type='email']"),                                  # type=email always present
+            (By.XPATH,       "//input[@type='email']"),                               # same via xpath
+            (By.XPATH,       "//input[@dir='auto' and @type='email']"),               # extra attribute guard
+            (By.XPATH,       "//label[contains(.,'Email') or contains(.,'Phone') or contains(.,'phone')]"
+                             "/following-sibling::div//input"),                        # via label text
+            (By.XPATH,       "//input[contains(@class,'fad42903')]"),                 # LinkedIn obfuscated class (may change)
+            (By.XPATH,       "//input[@type='email' or @type='text'][1]"),            # broadest fallback
+        ]
+        username_field = None
+        for by, selector in username_selectors:
+            try:
+                # Use presence_of_element_located (not element_to_be_clickable) to avoid
+                # failing due to LastPass/password-manager overlay sitting on top of the field
+                username_field = WebDriverWait(driver, 8).until(
+                    EC.presence_of_element_located((by, selector))
+                )
+                print_lg(f"Found username field using: {by}='{selector}'")
+                break
+            except Exception:
+                continue
+
+        # OLD: try:
+        #     text_input_by_ID(driver, "username", username, 1)
+        # except Exception as e:
+        #     print_lg("Couldn't find username field.")
+        # NEW: fill username using the located field with JS fallback (LastPass overlay can block direct send_keys)
+        if username_field:
+            filled = False
+            # Strategy 1: standard click + send_keys
+            try:
+                username_field.click()
+                username_field.send_keys(Keys.CONTROL + "a")
+                username_field.send_keys(username)
+                print_lg("Filled username field via send_keys.")
+                filled = True
+            except Exception as e:
+                print_lg("send_keys failed for username, trying JS injection...", e)
+            # Strategy 2: JavaScript set value + fire React 'input' event (needed for React-controlled inputs)
+            if not filled:
+                try:
+                    driver.execute_script("""
+                        var el = arguments[0];
+                        var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeInputValueSetter.call(el, arguments[1]);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    """, username_field, username)
+                    print_lg("Filled username field via JavaScript injection.")
+                    filled = True
+                except Exception as e2:
+                    print_lg("JavaScript injection also failed for username!", e2)
+            if not filled:
+                print_lg("All strategies failed to fill username field!")
+        else:
+            print_lg("Couldn't find username field with any selector!")
+
+
+        # OLD: try:
+        #     text_input_by_ID(driver, "password", password, 1)
+        # except Exception as e:
+        #     print_lg("Couldn't find password field.")
+        # NEW: find and fill password field with multiple fallback selectors
+        password_selectors = [
+            (By.XPATH,       "//input[contains(@autocomplete,'current-password')]"),
+            (By.CSS_SELECTOR,"input[type='password']"),
+            (By.XPATH,       "//input[@type='password']"),
+            (By.XPATH,       "//input[@dir='auto' and @type='password']"),
+            (By.XPATH,       "//label[contains(.,'Password') or contains(.,'password')]/following-sibling::div//input"),
+            (By.XPATH,       "//input[contains(@class,'fad42903')]"),
+        ]
+        password_field = None
+        for by, selector in password_selectors:
+            try:
+                password_field = WebDriverWait(driver, 5).until(EC.presence_of_element_located((by, selector)))
+                print_lg(f"Found password field using: {by}='{selector}'")
+                break
+            except Exception:
+                continue
+
+        if password_field:
+            filled = False
+            try:
+                password_field.click()
+                password_field.send_keys(Keys.CONTROL + "a")
+                password_field.send_keys(password)
+                print_lg("Filled password field via send_keys.")
+                filled = True
+            except Exception as e:
+                print_lg("send_keys failed for password, trying JS injection...", e)
+            if not filled:
+                try:
+                    driver.execute_script("""
+                        var el = arguments[0];
+                        var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeInputValueSetter.call(el, arguments[1]);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    """, password_field, password)
+                    print_lg("Filled password field via JavaScript injection.")
+                    filled = True
+                except Exception as e2:
+                    print_lg("JavaScript injection also failed for password!", e2)
+            if not filled:
+                print_lg("All strategies failed to fill password field!")
+        else:
+            print_lg("Couldn't find password field with any selector!")
+
+        # OLD: driver.find_element(By.XPATH, '//button[@type="submit" and contains(text(), "Sign in")]').click()
+        # NEW: click Sign In button with multiple fallback selectors
+        signin_selectors = [
+            (By.XPATH, '//button[@type="submit" and contains(text(), "Sign in")]'),
+            (By.XPATH, '//button[@type="submit" and contains(translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "sign in")]'),
+            (By.XPATH, '//button[@type="submit"]'),
+            (By.XPATH, '//button[contains(@class,"sign-in-form__submit")]'),
+            (By.XPATH, '//button[normalize-space()="Sign in"]'),
+            (By.CSS_SELECTOR, 'button[data-litms-control-urn*="login"]'),
+            (By.XPATH, '//button[contains(., "Sign in")]'),
+            (By.XPATH, '//button[@type="button" and contains(text(), "Sign in")]'),
+        ]
+        signed_in = False
+        for by, selector in signin_selectors:
+            try:
+                btn = WebDriverWait(driver, 5).until(EC.presence_of_element_located((by, selector)))
+                try:
+                    btn.click()
+                except:
+                    driver.execute_script("arguments[0].click();", btn)
+                print_lg(f"Clicked Sign In button using: {by}='{selector}'")
+                signed_in = True
+                break
+            except Exception:
+                continue
+        if not signed_in:
+            print_lg("Couldn't find Sign In button — trying Enter key as fallback.")
+            if password_field:
+                try:
+                    password_field.send_keys(Keys.ENTER)
+                except Exception as e:
+                    print_lg("Failed to send Enter key to password field.", e)
+
     except Exception as e1:
+        # OLD: try:
+        #     profile_button = find_by_class(driver, "profile__details")
+        #     profile_button.click()
+        # except Exception as e2:
+        #     print_lg("Couldn't Login!")
+        # NEW: same fallback to saved LinkedIn profile button, with better logging
+        print_lg("Primary login flow raised an exception, trying profile button fallback...", e1)
         try:
             profile_button = find_by_class(driver, "profile__details")
             profile_button.click()
         except Exception as e2:
-            # print_lg(e1, e2)
-            print_lg("Couldn't Login!")
+            print_lg("Couldn't Login via profile button either!", e2)
 
     try:
         # Wait until successful redirect, indicating successful login
-        wait.until(EC.url_to_be("https://www.linkedin.com/feed/")) # wait.until(EC.presence_of_element_located((By.XPATH, '//button[normalize-space(.)="Start a post"]')))
+        wait.until(EC.url_to_be("https://www.linkedin.com/feed/")) # wait.until(EC.presence_of_element_located((By.XPATH, '//button[normalize-space(.)="Start a post\"]')))
         return print_lg("Login successful!")
     except Exception as e:
         print_lg("Seems like login attempt failed! Possibly due to wrong credentials or already logged in! Try logging in manually!")
@@ -418,8 +568,7 @@ def get_job_description(
             experience_required = "Error in extraction"
             print_lg("Unable to extract years of experience required!")
             # print_lg(e)
-    finally:
-        return jobDescription, experience_required, skip, skipReason, skipMessage
+    return jobDescription, experience_required, skip, skipReason, skipMessage
         
 
 
@@ -677,6 +826,7 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
         # Check if it's a textarea question
         text_area = try_xp(Question, ".//textarea", False)
         if text_area:
+            do_actions = False
             label = try_xp(Question, ".//label[@for]", False)
             label_org = label.text if label else "Unknown"
             label = label_org.lower()
@@ -1065,8 +1215,22 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         errored = "stuck"
                                         raise Exception("Seems like stuck in a continuous loop of next, probably because of new questions.")
                                     questions_list = answer_questions(modal, questions_list, work_location, job_description=description)
-                                    if useNewResume and not uploaded: uploaded, resume = upload_resume(modal, default_resume_path)
+                                    if useNewResume and not uploaded:
+                                        ##> Resume Tailoring Feature — Azure OpenAI
+                                        if use_resume_tailoring and azureClient:
+                                            # Generate a tailored PDF for this specific job and upload it.
+                                            # Falls back to default_resume_path on any error
+                                            # (controlled by azure_tailoring_fallback in config/secrets.py).
+                                            tailored_resume_path = tailor_resume_for_job(
+                                                job_id, description, azureClient
+                                            )
+                                            uploaded, resume = upload_resume(modal, tailored_resume_path)
+                                        else:
+                                            # Original behavior — upload the static default resume
+                                            uploaded, resume = upload_resume(modal, default_resume_path)
+                                        ##<
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]') 
+
                                     except NoSuchElementException:  next_button = modal.find_element(By.XPATH, './/button[contains(span, "Next")]')
                                     try: next_button.click()
                                     except ElementClickInterceptedException: break    # Happens when it tries to click Next button in About Company photos section
@@ -1175,7 +1339,7 @@ def main() -> None:
     pyautogui.alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
     total_runs = 1
     try:
-        global linkedIn_tab, tabs_count, useNewResume, aiClient
+        global linkedIn_tab, tabs_count, useNewResume, aiClient, azureClient
         alert_title = "Error Occurred. Closing Browser!"
         validate_config()
         
@@ -1202,7 +1366,9 @@ def main() -> None:
         #     except Exception as e:
         #         print_lg("Opening OpenAI chatGPT tab failed!")
         if use_AI:
-            if ai_provider == "openai":
+            if ai_provider == "azure":
+                aiClient = azure_create_client()
+            elif ai_provider == "openai":
                 aiClient = ai_create_openai_client()
             ##> ------ Yang Li : MARKYangL - Feature ------
             # Create DeepSeek client
@@ -1217,6 +1383,15 @@ def main() -> None:
                 print_lg(f"Extracted about company info for AI: '{about_company_for_ai}'")
             except Exception as e:
                 print_lg("Failed to extract about company info!", e)
+
+        # Resume Tailoring Feature — Initialize Azure OpenAI client
+        if use_resume_tailoring:
+            try:
+                #azureClient = azure_create_client()
+                print_lg("Azure OpenAI client initialized for resume tailoring.")
+            except Exception as e:
+                print_lg("Failed to initialize Azure OpenAI client for resume tailoring!", e)
+                azureClient = None
         
         # Start applying to jobs
         driver.switch_to.window(linkedIn_tab)
@@ -1292,6 +1467,13 @@ def main() -> None:
             except Exception as e:
                 print_lg("Failed to close AI client:", e)
         ##<
+        # Resume Tailoring Feature — Close Azure OpenAI client
+        if use_resume_tailoring and azureClient:
+            try:
+                azure_close_client(azureClient)
+                print_lg("Closed Azure OpenAI client.")
+            except Exception as e:
+                print_lg("Failed to close Azure OpenAI client:", e)
         try:
             if driver:
                 driver.quit()
