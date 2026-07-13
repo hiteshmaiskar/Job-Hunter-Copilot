@@ -1,19 +1,14 @@
 '''
-Author:     Sai Vignesh Golla
-LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
-
-Copyright (C) 2024 Sai Vignesh Golla
-
-License:    GNU Affero General Public License
-            https://www.gnu.org/licenses/agpl-3.0.en.html
-            
-GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-
-Support me: https://github.com/sponsors/GodsScion
-
-version:    26.01.20.5.08
+Job-Hunter-Copilot
+version:    v1.2026-07
 '''
 
+from config.personals import (
+    first_name, middle_name, last_name, phone_number,
+    current_city, state, country, zipcode, street,
+    degree, degree_duration, visa, work_Authorization,
+    german_proficiency, gender, ethnicity, disability_status, veteran_status
+)
 
 ###################################################### APPLICATION INPUTS ######################################################
 
@@ -21,7 +16,7 @@ version:    26.01.20.5.08
 # >>>>>>>>>>> Easy Apply Questions & Inputs <<<<<<<<<<<
 
 # Give an relative path of your default resume to be uploaded. If file in not found, will continue using your previously uploaded resume in LinkedIn.
-default_resume_path = "all resumes/default/RESUME_FULL_STACK_SOFTWARE_DEVELOPER_GERMANY-OC-VISA_B1_CERTIFIED.pdf"      # (In Development)
+default_resume_path = "all resumes/default/RESUME_FULL_STACK_SENIOR_TECHNICAL_LEAD.pdf"      # (In Development)
 
 # What do you want to answer for questions that ask about years of experience you have, this is different from current_experience? 
 years_of_experience = "14"          # A number in quotes Eg: "0","1","2","3","4", etc.
@@ -46,7 +41,7 @@ us_citizenship = "Non-citizen seeking work authorization"
 ## SOME ANNOYING QUESTIONS BY COMPANIES 🫠 ##
 
 # What to enter in your desired salary question (American and European), What is your expected CTC (South Asian and others)?, only enter in numbers as some companies only allow numbers,
-desired_salary = 70000          # 80000, 90000, 100000 or 120000 and so on... Do NOT use quotes
+desired_salary = 3000000          # 80000, 90000, 100000 or 120000 and so on... Do NOT use quotes
 '''
 Note: If question has the word "lakhs" in it (Example: What is your expected CTC in lakhs), 
 then it will add '.' before last 5 digits and answer. Examples: 
@@ -58,7 +53,7 @@ And if asked in months, then it will divide by 12 and answer. Examples:
 '''
 
 # What is your current CTC? Some companies make it compulsory to be answered in numbers...
-current_ctc = 2500000            # 800000, 900000, 1000000 or 1200000 and so on... Do NOT use quotes
+current_ctc = 2000000            # 800000, 900000, 1000000 or 1200000 and so on... Do NOT use quotes
 '''
 Note: If question has the word "lakhs" in it (Example: What is your current CTC in lakhs), 
 then it will add '.' before last 5 digits and answer. Examples: 
@@ -73,7 +68,7 @@ then it will add '.' before last 5 digits and answer. Examples:
 currency = "INR"                 # "USD", "INR", "EUR", etc.
 
 # What is your notice period in days?
-notice_period = 30                   # Any number >= 0 without quotes. Eg: 0, 7, 15, 30, 45, etc.
+notice_period = 60                   # Any number >= 0 without quotes. Eg: 0, 7, 15, 30, 45, etc.
 '''
 Note: If question has 'month' or 'week' in it (Example: What is your notice period in months), 
 then it will divide by 30 or 7 and answer respectively. Examples:
@@ -92,7 +87,7 @@ linkedin_headline = "German Certified | Senior Technical Lead | Full Stack Devel
 # Your summary in quotes, use \n to add line breaks if using single quotes "Summary".You can skip \n if using triple quotes """Summary"""
 linkedin_summary = """
 I'm a Senior Technical Lead at Happiest Minds with 14+ years of experience in developing and maintaining Full Stack Web applications using Generative AI. 
-Specialized in Angular, .NET, and Agentic AI.
+Specialized in Angular, .NET, Azure and AI/ML Agentic AI development.
 """
 
 '''
@@ -103,12 +98,39 @@ Note: If left empty as "", the tool will not answer the question. However, note 
 cover_letter = """
 Cover Letter
 """
-##> ------ Dheeraj Deshwal : dheeraj9811 Email:dheeraj20194@iiitd.ac.in/dheerajdeshwal9811@gmail.com - Feature ------
 
-# Your user_information_all letter in quotes, use \n to add line breaks if using single quotes "user_information_all".You can skip \n if using triple quotes """user_information_all""" (This question makes sense though)
-# We use this to pass to AI to generate answer from information , Assuing Information contians eg: resume  all the information like name, experience, skills, Country, any illness etc. 
-user_information_all ="""
-User Information
+# user_information_all is auto-built from config/personals.py so the AI always has accurate personal context.
+# You can append extra info (skills, experience summary, etc.) in the `extra_user_info` block below.
+extra_user_info = """
+14+ years of Full Stack Software Development experience.
+Primary skills: AI/ML Agentic AI development, .NET, Angular, Python, Azure, AWS.
+Certfication: German Language upto B1.
+"""
+
+user_information_all = f"""
+=== Personal Information ===
+Name: {first_name} {middle_name} {last_name}
+Phone: {phone_number}
+Location: {current_city}, {state}, {country} - {zipcode}
+Street: {street}
+
+=== Education ===
+Degree: {degree}
+Duration: {degree_duration}
+
+=== Work Authorization ===
+Work Authorization: {work_Authorization}
+Visa / Immigration Status: {visa}
+German Language Proficiency: {german_proficiency}
+
+=== Demographics (EEO) ===
+Gender: {gender}
+Ethnicity: {ethnicity}
+Disability Status: {disability_status}
+Veteran Status: {veteran_status}
+
+=== Additional Information ===
+{extra_user_info.strip()}
 """
 ##<
 '''
@@ -128,7 +150,7 @@ confidence_level = "8"             # Any number between "1" to "10" including 1 
 
 ## Allow Manual Inputs
 # Should the tool pause before every submit application during easy apply to let you check the information?
-pause_before_submit = True         # True or False, Note: True or False are case-sensitive
+pause_before_submit = False         # True or False, Note: True or False are case-sensitive
 '''
 Note: Will be treated as False if `run_in_background = True`
 '''
@@ -154,15 +176,5 @@ overwrite_previous_answers = False # True or False, Note: True or False are case
 '''
 THANK YOU for using my tool 😊! Wishing you the best in your job hunt 🙌🏻!
 
-Sharing is caring! If you found this tool helpful, please share it with your peers 🥺. Your support keeps this project alive.
-
-Support my work on <PATREON_LINK>. Together, we can help more job seekers.
-
-As an independent developer, I pour my heart and soul into creating tools like this, driven by the genuine desire to make a positive impact.
-
-Your support, whether through donations big or small or simply spreading the word, means the world to me and helps keep this project alive and thriving.
-
-Gratefully yours 🙏🏻,
-Sai Vignesh Golla
 '''
 ############################################################################################################

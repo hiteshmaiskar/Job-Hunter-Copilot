@@ -1,17 +1,6 @@
 '''
-Author:     Sai Vignesh Golla
-LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
-
-Copyright (C) 2024 Sai Vignesh Golla
-
-License:    GNU Affero General Public License
-            https://www.gnu.org/licenses/agpl-3.0.en.html
-            
-GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-
-Support me: https://github.com/sponsors/GodsScion
-
-version:    26.01.20.5.08
+product: Job-Hunter-Copilot
+version: v1.2026-07
 '''
 
 
@@ -56,16 +45,16 @@ salary = ""                        # "$40,000+", "$60,000+", "$80,000+", "$100,0
 
 easy_apply_only = True             # True or False, Note: True or False are case-sensitive
 
-experience_level = []              # (multiple select) "Internship", "Entry level", "Associate", "Mid-Senior level", "Director", "Executive"
-job_type = []                      # (multiple select) "Full-time", "Part-time", "Contract", "Temporary", "Volunteer", "Internship", "Other"
-on_site = []                       # (multiple select) "On-site", "Remote", "Hybrid"
+experience_level = ["Mid-Senior level"]              # (multiple select) "Internship", "Entry level", "Associate", "Mid-Senior level", "Director", "Executive"
+job_type = ["Full-time"]                      # (multiple select) "Full-time", "Part-time", "Contract", "Temporary", "Volunteer", "Internship", "Other"
+on_site = ["On-site", "Remote", "Hybrid"]                       # (multiple select) "On-site", "Remote", "Hybrid"
 
 companies = []                     # (dynamic multiple select) make sure the name you type in list exactly matches with the company name you're looking for, including capitals. 
                                    # Eg: "7-eleven", "Google","X, the moonshot factory","YouTube","CapitalG","Adometry (acquired by Google)","Meta","Apple","Byte Dance","Netflix", "Snowflake","Mineral.ai","Microsoft","JP Morgan","Barclays","Visa","American Express", "Snap Inc", "JPMorgan Chase & Co.", "Tata Consultancy Services", "Recruiting from Scratch", "Epic", and so on...
 location = ["Germany", "Austria", "Switzerland"]                      # (dynamic multiple select)
 industry = ["Information Technology and Services"]                      # (dynamic multiple select)
 job_function = ["Software Development", "Product Architecture"]                  # (dynamic multiple select)
-job_titles = ["Full Stack Software Developer","Senior Software Developer","AI Engineer"]                    # (dynamic multiple select)
+job_titles = [".NET Full Stack Developer","AI/ML Engineer"]                    # (dynamic multiple select)
 benefits = []                      # (dynamic multiple select)
 commitments = []                   # (dynamic multiple select)
 
@@ -77,7 +66,7 @@ fair_chance_employer = False       # True or False, Note: True or False are case
 ## >>>>>>>>>>> RELATED SETTING <<<<<<<<<<<
 
 # Pause after applying filters to let you modify the search results and filters?
-pause_after_filters = True         # True or False, Note: True or False are case-sensitive
+pause_after_filters = False         # True or False, Note: True or False are case-sensitive
 
 ##
 
@@ -102,7 +91,7 @@ security_clearance = False         # True or False, Note: True or False are case
 did_masters = True                 # True or False, Note: True or False are case-sensitive
 
 # Avoid applying to jobs if their required experience is above your current_experience. (Set value as -1 if you want to apply to all ignoring their required experience...)
-current_experience = 5             # Integers > -2 (Ex: -1, 0, 1, 2, 3, 4...)
+current_experience = 14            # Integers > -2 (Ex: -1, 0, 1, 2, 3, 4...)
 ##
 
 
@@ -114,15 +103,5 @@ current_experience = 5             # Integers > -2 (Ex: -1, 0, 1, 2, 3, 4...)
 '''
 THANK YOU for using my tool 😊! Wishing you the best in your job hunt 🙌🏻!
 
-Sharing is caring! If you found this tool helpful, please share it with your peers 🥺. Your support keeps this project alive.
-
-Support my work on <PATREON_LINK>. Together, we can help more job seekers.
-
-As an independent developer, I pour my heart and soul into creating tools like this, driven by the genuine desire to make a positive impact.
-
-Your support, whether through donations big or small or simply spreading the word, means the world to me and helps keep this project alive and thriving.
-
-Gratefully yours 🙏🏻,
-Sai Vignesh Golla
 '''
 ############################################################################################################

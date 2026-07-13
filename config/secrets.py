@@ -1,26 +1,22 @@
 '''
-Author:     Sai Vignesh Golla
-LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
-
-Copyright (C) 2024 Sai Vignesh Golla
-
-License:    GNU Affero General Public License
-            https://www.gnu.org/licenses/agpl-3.0.en.html
-            
-GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-
-Support me: https://github.com/sponsors/GodsScion
-
-version:    24.12.3.10.30
+Product: Job-Hunter-Copilot
+Version: v1.2026-07
 '''
 
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from the project root (works regardless of cwd)
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 ###################################################### CONFIGURE YOUR TOOLS HERE ######################################################
 
 
-# Login Credentials for LinkedIn (Optional)
-username = "hitesh.maiskar89@gmail.com"       # Enter your username in the quotes
-password = "erbeceH1!"           # Enter your password in the quotes
+# Login Credentials for LinkedIn (loaded from .env)
+username = os.environ.get("LINKEDIN_USERNAME", "")  # Set LINKEDIN_USERNAME in .env
+password = os.environ.get("LINKEDIN_PASSWORD", "")  # Set LINKEDIN_PASSWORD in .env
 
 
 ## Artificial Intelligence (Beta Not-Recommended)
@@ -102,8 +98,8 @@ azure_openai_endpoint = "https://job-hunter-copilot-resource.openai.azure.com/"
 # Example: "https://my-resource.openai.azure.com/"
 
 # Azure OpenAI API key
-azure_openai_key = "2PTisOhgbkP4vSqBX2bXEXZH0Unrb8CS2aE1n5fW7MssOMZ1Q3sIJQQJ99CGACHYHv6XJ3w3AAAAACOGZK3J"
-# Example: "abc123def456..."
+azure_openai_key = os.environ.get("AZURE_OPENAI_KEY", "")  # Reads from environment variable
+# Example: set AZURE_OPENAI_KEY=abc123def456... in your environment
 
 # Deployment name — the name you gave the model in Azure AI Foundry
 azure_openai_deployment = "gpt-5-mini"
@@ -135,15 +131,5 @@ the bot reuses it without calling the Azure API again (saves tokens & time).
 '''
 THANK YOU for using my tool 😊! Wishing you the best in your job hunt 🙌🏻!
 
-Sharing is caring! If you found this tool helpful, please share it with your peers 🥺. Your support keeps this project alive.
-
-Support my work on <PATREON_LINK>. Together, we can help more job seekers.
-
-As an independent developer, I pour my heart and soul into creating tools like this, driven by the genuine desire to make a positive impact.
-
-Your support, whether through donations big or small or simply spreading the word, means the world to me and helps keep this project alive and thriving.
-
-Gratefully yours 🙏🏻,
-Sai Vignesh Golla
 '''
 ############################################################################################################

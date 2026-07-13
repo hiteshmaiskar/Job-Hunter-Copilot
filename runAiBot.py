@@ -1,17 +1,6 @@
 '''
-Author:     Sai Vignesh Golla
-LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
-
-Copyright (C) 2024 Sai Vignesh Golla
-
-License:    GNU Affero General Public License
-            https://www.gnu.org/licenses/agpl-3.0.en.html
-            
-GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-
-Support me: https://github.com/sponsors/GodsScion
-
-version:    26.01.20.5.08
+Product: Job-Hunter-Copilot
+Version: v1.2026-07
 '''
 
 
@@ -1499,18 +1488,18 @@ def main() -> None:
         print_lg("Irrelevant jobs skipped:        {}\n".format(skip_count))
         if randomly_answered_questions: print_lg("\n\nQuestions randomly answered:\n  {}  \n\n".format(";\n".join(str(question) for question in randomly_answered_questions)))
         quotes = choice([
-            "Never quit. You're one step closer than before. - Sai Vignesh Golla", 
-            "All the best with your future interviews, you've got this. - Sai Vignesh Golla", 
-            "Keep up with the progress. You got this. - Sai Vignesh Golla", 
-            "If you're tired, learn to take rest but never give up. - Sai Vignesh Golla",
-            "Success is not final, failure is not fatal, It is the courage to continue that counts. - Winston Churchill (Not a sponsor)",
-            "Believe in yourself and all that you are. Know that there is something inside you that is greater than any obstacle. - Christian D. Larson (Not a sponsor)",
-            "Every job is a self-portrait of the person who does it. Autograph your work with excellence. - Jessica Guidobono (Not a sponsor)",
-            "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle. - Steve Jobs (Not a sponsor)",
-            "Opportunities don't happen, you create them. - Chris Grosser (Not a sponsor)",
-            "The road to success and the road to failure are almost exactly the same. The difference is perseverance. - Colin R. Davis (Not a sponsor)",
-            "Obstacles are those frightful things you see when you take your eyes off your goal. - Henry Ford (Not a sponsor)",
-            "The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt (Not a sponsor)",
+            "Never quit. You're one step closer than before.", 
+            "All the best with your future interviews, you've got this.", 
+            "Keep up with the progress. You got this.", 
+            "If you're tired, learn to take rest but never give up.",
+            "Success is not final, failure is not fatal, It is the courage to continue that counts.",
+            "Believe in yourself and all that you are. Know that there is something inside you that is greater than any obstacle.",
+            "Every job is a self-portrait of the person who does it. Autograph your work with excellence.",
+            "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle.",
+            "Opportunities don't happen, you create them.",
+            "The road to success and the road to failure are almost exactly the same. The difference is perseverance.",
+            "Obstacles are those frightful things you see when you take your eyes off your goal.",
+            "The only limit to our realization of tomorrow will be our doubts of today.",
             ])
         sponsors = "Be the first to have your name here!"
         timeSaved = (easy_applied_count * 80) + (external_jobs_count * 20) + (skip_count * 10)

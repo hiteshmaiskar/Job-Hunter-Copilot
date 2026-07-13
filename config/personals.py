@@ -1,15 +1,6 @@
 '''
-Author:     Sai Vignesh Golla
-LinkedIn:   https://www.linkedin.com/in/saivigneshgolla/
-
-Copyright (C) 2024 Sai Vignesh Golla
-
-License:    GNU Affero General Public License
-            https://www.gnu.org/licenses/agpl-3.0.en.html
-            
-GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-
-version:    2024.11.28.16.00
+Job-Hunter-Copilot
+version:    v1.2026-07
 '''
 
 
@@ -25,7 +16,7 @@ last_name = "Maiskar"                # Your last name in quotes Eg: "Last", "Gol
 
 # Phone number (required), make sure it's valid.
 # phone_number = "9876543210"        # Enter your 10 digit number in quotes Eg: "9876543210"
-phone_number = "9766313688"        # Enter your 10 digit number in quotes Eg: "9876543210"
+phone_number = "+91-9766313688"        # Enter your 10 digit number in quotes Eg: "9876543210"
 
 # What is your current city?
 current_city = "Pune"                  # Los Angeles, San Francisco, etc.
@@ -52,6 +43,12 @@ disability_status = "No"      # "Yes", "No", "Decline"
 veteran_status = "No"         # "Yes", "No", "Decline"
 ##
 
+degree="B.E. Computer Engineering"
+degree_duration = "July-2007 to July 2011"
+german_proficiency = "Professional"
+visa= "Germany Opprotunity Card"
+work_Authorization = "Germany"
+phone_country_code = "India (+91)"
 
 '''
 For string variables followed by comments with options, only use the answers from given options.
@@ -73,15 +70,5 @@ Invalid inputs will result in an error!
 '''
 THANK YOU for using my tool 😊! Wishing you the best in your job hunt 🙌🏻!
 
-Sharing is caring! If you found this tool helpful, please share it with your peers 🥺. Your support keeps this project alive.
-
-Support my work on <PATREON_LINK>. Together, we can help more job seekers.
-
-As an independent developer, I pour my heart and soul into creating tools like this, driven by the genuine desire to make a positive impact.
-
-Your support, whether through donations big or small or simply spreading the word, means the world to me and helps keep this project alive and thriving.
-
-Gratefully yours 🙏🏻,
-Sai Vignesh Golla
 '''
 ############################################################################################################

@@ -1,14 +1,6 @@
 '''
-Azure OpenAI Connections — Resume Tailoring Feature
-Author:     Hitesh Maiskar (extension of original Job-Hunter-Copilot)
-
-Uses the Azure AI Foundry deployed ChatGPT model to tailor resumes per job description.
-Credentials are configured in config/secrets.py under the "Resume Tailoring" section.
-
-Original project:
-    GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
-    License:    GNU Affero General Public License
-                https://www.gnu.org/licenses/agpl-3.0.en.html
+product: Job-Hunter-Copilot
+version: v1.2026-07
 '''
 
 
